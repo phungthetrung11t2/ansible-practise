@@ -1,0 +1,73 @@
+---
+
+- name: Enable epel repositories
+  command: "amazon-linux-extras enable epel -y"
+  when: ansible_distribution == "Amazon"
+
+- name: enable php7.4
+  shell: "sudo amazon-linux-extras enable php7.4"
+  when: ansible_distribution == "Amazon"
+
+- name: enable epel-release
+  yum:
+    name: '{{ item }}'
+    state: present
+  with_items:
+  - epel-release 
+  - yum-utils
+  when: ansible_distribution == "CentOS"
+  
+- name: install remi
+  yum:
+    name: http://rpms.remirepo.net/enterprise/remi-release-7.rpm
+    state: present
+  when: ansible_distribution == "CentOS"
+
+
+- name: enable php 7.4
+  command: yum-config-manager --enable remi-php74
+  when: ansible_distribution == "CentOS"
+
+- name: 'LampStack - Installation'
+  yum:
+    name:
+      - php
+      - httpd
+      - php-cli
+      - php-pdo 
+      - php-fpm 
+      - php-json 
+      - php-mysqlnd
+      - mariadb-server
+      - MySQL-python
+    state: present
+      
+- name: 'LampStack - Restarting/Enabling'
+  service:
+    name: "{{item}}"
+    state: restarted
+    enabled: yes
+  with_items:
+    - mariadb
+    - httpd
+      
+- name: 'LampStack - Creating Virtualhost'
+  template:
+    src: virtualhost.j2
+    dest: /etc/httpd/conf.d/{{domain}}.conf
+      
+- name: 'LampStack - Creating Documentroot'
+  file:
+    path: /var/www/html/{{domain}}
+    state: directory  
+      
+      
+- name: 'LampStack - Creating info.html'
+  copy:
+    src: info.html
+    dest: /var/www/html/{{domain}}/info.html      
+      
+- name: 'LampStack - Creating info.php'
+  copy:
+    src: info.php
+    dest: /var/www/html/{{domain}}/info.php

@@ -1,0 +1,65 @@
+---
+
+- name: Check if root password is unset
+  shell: >
+    mysql -u root
+    -p'{{ mysql_root }}'
+    -h localhost
+    -e "quit"
+  changed_when: false
+  ignore_errors: true
+  register: root_pwd_check
+  tags: mariadb
+
+- name: 'MariaDb - Resetting Root Password'
+  mysql_user:
+    login_user: root
+    login_password: ''
+    name: root
+    host_all: yes
+    password: "{{ mysql_root }}"
+  when: root_pwd_check.rc != 0
+
+- name: 'MariaDb - Removing Anonymous Users'
+  mysql_user:
+    login_user: root
+    login_password: "{{ mysql_root }}"
+    name: ''
+    host_all: yes
+    state: absent
+      
+- name: 'MariaDb - Creating Wordpress Database'
+  mysql_db:
+    login_user: root
+    login_password: "{{ mysql_root }}"
+    db: "{{ wordpress_database }}"
+    state: present
+      
+      
+- name: 'MariaDb - Creating WordPress User and Privileges'
+  mysql_user:
+    login_user: root
+    login_password: "{{ mysql_root }}"
+    name: "{{ wordpress_user }}"
+    host: localhost
+    password: "{{wordpress_password}}"
+    priv: "{{wordpress_database}}.*:ALL"
+      
+# - name: 'Wordpress - Downloading'
+  # get_url:
+    # url: https://wordpress.org/wordpress-4.5.8.tar.gz
+    # dest: /tmp/wordpress.tar.gz
+      
+- name: 'Wordpress - Extraction'
+  unarchive: 
+    src: https://wordpress.org/latest.tar.gz
+    dest: /tmp/ 
+    remote_src: yes 
+
+- name: 'Wordpress - Copying Wordpress To DocumentRoot'
+  shell: 'cp -r /tmp/wordpress/*  /var/www/html/{{domain}}'
+    
+- name: 'Wordpress - Creating wp-config.php'
+  template:
+    src: wp-config.php.j2
+    dest: /var/www/html/{{domain}}/wp-config.php

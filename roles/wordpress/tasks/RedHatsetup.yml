@@ -1,0 +1,4 @@
+---
+- include_tasks: RedHatapache.yml
+- include_tasks: RedHatmariadb.yml
+- include_tasks: RedHatpost-install.yml

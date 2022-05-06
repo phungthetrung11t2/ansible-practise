@@ -1,0 +1,8 @@
+---
+- name: 'LampStack - Post Restarting'
+  service:
+    name: "{{item}}"
+    state: restarted
+  with_items:
+    - mariadb
+    - httpd

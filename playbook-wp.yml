@@ -1,0 +1,13 @@
+---
+- hosts: all
+  become: yes
+  gather_facts: true
+  roles:
+    #- wordpress-centssss
+    #- wordpress-am
+    #when: ansible_os_family == 'RedHat'
+    - wordpress
+    #when: ansible_os_family == 'Debian'
+    #- mysql
+    #- nginx
+    #- php
