@@ -1,0 +1,148 @@
+---
+ #### MySQL Configuration
+
+- name: Find temporary password
+  shell: "echo `grep 'temporary.*root@localhost' /var/log/mysqld.log | sed 's/.*root@localhost: //'`"
+  #when: ansible_os_family == "RedHat" and rh_mysql_install_packages is changed
+  register: mysql_root_password_temp
+  tags: register
+
+#- name: Set new password from temporary password
+#  shell: 'mysql -e "SET PASSWORD = PASSWORD(''{{ mysql_root_password }}'');"
+#--connect-expired-password -u root -p"{{ mysql_root_password_temp.stdout
+#}}"'
+#  when: ansible_os_family == "RedHat" and rh_mysql_install_packages is changed
+#  notify:
+#    - restart mysql
+
+- name: Set new password from temporary password
+  shell: >
+    mysql --user=root --password="{{ mysql_root_password_temp.stdout}}"
+    --host=localhost --connect-expired-password
+    --execute="ALTER USER 'root'@'localhost' IDENTIFIED BY '"{{mysql_root_password}}"';"
+  # when:
+    # - ansible_os_family == "RedHat"
+    # - rh_mysql_install_packages is changed
+  ignore_errors: true
+  notify:
+    - restart mysql
+
+
+# - name: get root password
+  # shell: "grep 'A temporary password is generated for root@localhost' /var/log/mysqld.log | awk -F ' ' '{print $(NF)}'"
+  # register: root_password
+
+# - name: update expired root user password
+  # command: mysql --user root --password={{ root_password.stdout }} --connect-expired-password --execute="ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ mysql_root_password }}';"
+  # notify: restart mysql
+
+- name: Copy .my.cnf file with root password credentials.
+  template:
+    src: "De.my.cnf.j2"
+    dest: "/root/.my.cnf"
+    owner: root
+    group: root
+    mode: 0600
+  notify: restart mysql
+
+# - name: Check if root password is unset
+  # shell: >
+    # mysql -u root
+    # -p'{{ mysql_root_password }}'
+    # -h localhost
+    # -e "quit"
+  # changed_when: false
+  # ignore_errors: true
+  # register: root_pwd_check
+  # tags: mariadb
+
+# - name: Set the root password
+  # mysql_user:
+    # name: root
+    # password: "{{ mysql_root_password }}"
+    # login_unix_socket: /var/run/mysqld/mysqld.sock
+  #when: root_pwd_check.rc != 1
+  #ignore_errors: true
+  # tags: mysql
+
+# - name: Set root user password
+  # If .my.cnf already exists, this will cause an mysql-root-password update.
+  # mysql_user:
+    # name: root
+    # password: "{{ mysql_root_password }}"
+    # check_implicit_admin: true
+
+- name: Get list of hosts for the root user.
+  command: mysql -NBe "SELECT Host FROM mysql.user WHERE User ='root' ORDER BY (Host='localhost') ASC"
+  register: mysql_root_hosts
+  changed_when: false
+  check_mode: no
+  #when: mysql_install_packages | bool or mysql_root_password_update
+
+
+- name: Update MySQL root password for localhost root account (5.7.x).
+  shell: >
+    mysql -u root -NBe
+    'ALTER USER "root"@"{{ item }}" IDENTIFIED WITH mysql_native_password BY "{{ mysql_root_password }}";'
+  with_items: "{{ mysql_root_hosts.stdout_lines|default([]) }}"
+  #when: ((mysql_install_packages | bool) or mysql_root_password_update) and ('5.7.' in mysql_cli_version.stdout or '8.0.' in mysql_cli_version.stdout)
+
+- name: Get list of hosts for the anonymous user.
+  command: mysql -NBe 'SELECT Host FROM mysql.user WHERE User = ""'
+  register: mysql_anonymous_hosts
+  changed_when: false
+  check_mode: no
+
+- name: Remove anonymous MySQL users.
+  mysql_user:
+     name: ""
+     host: "{{ item }}"
+     state: absent
+  with_items: "{{ mysql_anonymous_hosts.stdout_lines|default([]) }}"
+
+
+# - name: Remove all anonymous user accounts
+  # mysql_user:
+    # login_user: root
+    # login_password: "{{ mysql_root_password }}"
+    #name: ''
+    # host_all: yes
+    # state: absent
+    # login_user: root
+    # login_password: "{{ mysql_root_password }}"
+  # ignore_errors: true
+  # tags: mysql
+
+- name: Remove the MySQL test database
+  mysql_db:
+    name: test
+    state: absent
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+  tags: mysql
+
+- name: Creates database for WordPress
+  mysql_db:
+    name: "{{ mysql_db }}"
+    state: present
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+  tags: mysql
+
+- name: Create MySQL user for WordPress
+  mysql_user:
+    name: "{{ mysql_user }}"
+    password: "{{ mysql_password }}"
+    priv: "{{ mysql_db }}.*:ALL"
+    state: present
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+  tags: mysql
+
+  #####UFW Configuration
+- name: "UFW - Allow HTTP on port {{ http_port }}"
+  ufw:
+    rule: allow
+    port: "{{ http_port }}"
+    proto: tcp
+  tags: system

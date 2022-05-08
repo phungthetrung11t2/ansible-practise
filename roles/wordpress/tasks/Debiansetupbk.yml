@@ -1,0 +1,197 @@
+---
+# - name: Install prerequisites
+  # apt: 
+    # name: aptitude
+    # update_cache: yes 
+    # force_apt_get: yes
+    ## state: latest
+  # tags: system
+
+- name: Installation install software-properties-common
+  apt: 
+    name: software-properties-common
+
+- name: "Repo PHP 7.4"
+  apt_repository:
+    repo: "ppa:ondrej/php"
+ 
+- name: "Updating the repo"
+  apt: 
+    update_cache: yes
+
+- name: Remove mysql-servers
+  apt:
+    name: mysql-server
+    state: absent
+  ignore_errors: true
+
+- name: Install LAMP Packages
+  apt: 
+    name: '{{ item }}'
+    update_cache: yes 
+    state: latest
+  with_items: 
+    - apache2
+    - mysql-server
+    - python3-pymysql
+    - php
+    - php-mysql
+    - libapache2-mod-php
+    - python-mysqldb
+  tags: system
+
+- name: Install PHP Extensions
+  apt: 
+    name: '{{ item }}' 
+    update_cache: yes 
+    state: latest
+  with_items: "{{ php_modules }}"
+  tags: system
+
+###Apache Configuration
+- name: Remove document root
+  file:
+    path: "/var/www/{{ http_host }}"
+    state: absent
+  ignore_errors: true
+  tags: apache
+
+- name: Create document root
+  file:
+    path: "/var/www/{{ http_host }}"
+    state: directory
+    owner: "ubuntu"
+    group: "ubuntu"
+    mode: '0755'
+  tags: apache
+
+- name: Set up Apache VirtualHost
+  template:
+    src: "files/apache.conf.j2"
+    dest: "/etc/apache2/sites-available/{{ http_conf }}"
+  notify: Reload Apache
+  tags: apache
+
+- name: Enable rewrite module
+  shell: /usr/sbin/a2enmod rewrite
+  notify: Reload Apache
+  tags: apache
+
+- name: Enable new site
+  shell: /usr/sbin/a2ensite {{ http_conf }}
+  notify: Reload Apache
+  tags: apache
+
+- name: Disable default Apache site
+  shell: /usr/sbin/a2dissite 000-default.conf
+  notify: Restart Apache
+  tags: apache
+
+ #### MySQL Configuration
+
+- name: Check if root password is unset
+  shell: >
+    mysql -u root
+    -p'{{ mysql_root_password }}'
+    -h localhost
+    -e "quit"
+  changed_when: false
+  ignore_errors: true
+  register: root_pwd_check
+  tags: mariadb
+
+- name: Set the root password
+  mysql_user:
+    name: root
+    password: "{{ mysql_root_password }}"
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+  when: root_pwd_check.rc != 0
+  tags: mysql
+
+- name: Remove all anonymous user accounts
+  mysql_user:
+    name: ''
+    host_all: yes
+    state: absent
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+  ignore_errors: true
+  tags: mysql
+
+- name: Remove the MySQL test database
+  mysql_db:
+    name: test
+    state: absent
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+  tags: mysql
+
+- name: Creates database for WordPress
+  mysql_db:
+    name: "{{ mysql_db }}"
+    state: present
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+  tags: mysql
+
+- name: Create MySQL user for WordPress
+  mysql_user:
+    name: "{{ mysql_user }}"
+    password: "{{ mysql_password }}"
+    priv: "{{ mysql_db }}.*:ALL"
+    state: present
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+  tags: mysql
+
+  #####UFW Configuration
+- name: "UFW - Allow HTTP on port {{ http_port }}"
+  ufw:
+    rule: allow
+    port: "{{ http_port }}"
+    proto: tcp
+  tags: system
+
+  # WordPress Configuration
+# - name: Download WordPress
+  # get_url:
+    # url: https://wordpress.org/latest.tar.gz
+    # dest: "/tmp/wordpress.tar.gz"
+    # validate_certs: no
+# - name: create folder
+  # command: mkdir -p /var/www/{{ http_host }}
+  # tags: wordpress
+# 
+# - name: Extra wordpress
+  # command: tar xzf /tmp/wordpress.tar.gz -C /var/www/{{ http_host }}/wordpress
+  # tags: wordpress
+
+- name: Download and unpack latest WordPress
+  unarchive:
+    src: https://wordpress.org/latest.tar.gz
+    dest: /var/www/{{ http_host }}
+    mode: u=rwX,g=rX,o=rX
+    remote_src: true
+    creates: /var/www/{{ http_host }}/wordpress
+  tags: wordpress
+
+- name: Set ownership
+  file:
+    path: "/var/www/{{ http_host }}"
+    state: directory
+    recurse: yes
+    owner: ubuntu
+    group: ubuntu
+  tags: wordpress
+
+- name: Set permissions for directories
+  shell: "/usr/bin/find /var/www/{{ http_host }}/wordpress/ -type d -exec chmod 755 {} \\;"
+  tags: wordpress
+- name: Set permissions for files
+  shell: "/usr/bin/find /var/www/{{ http_host }}/wordpress/ -type f -exec chmod 645 {} \\;"
+  tags: wordpress
+- name: Set up wp-config
+  template:
+    src: "files/wp-config.php.j2"
+    dest: "/var/www/{{ http_host }}/wordpress/wp-config.php"
+  tags: wordpress
