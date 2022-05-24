@@ -1,0 +1,33 @@
+---
+# defaults file for nodejs
+nodejs_version: "14.x"
+npm_config_prefix: "/usr/local/lib/npm"
+npm_config_unsafe_perm: "false"
+nodejs_npm_global_packages:
+  - name: yarn
+    version: 1.22.18
+  - name: pm2
+    version: 5.2.0
+  - name: swagger-stats
+  - name: forever
+
+nodejs_package_json_path: ""
+
+pm2_app: []
+#  - app_name: test
+#    app_home: /home/test
+#    app_js_file: /home/test/hello.js
+#    app_number_ins: 2
+#    app_repo: https://github.com/chithanh89/test-nodejs.git
+#    app_version: master
+#    app_log_file: /var/log/pm2.log
+
+systemd_service_dir: /etc/systemd/system
+
+forever_app: []
+#  - app_name: test
+#    app_home: /home/test
+#    app_js_file: /home/test/hello.js
+#    app_repo: https://github.com/chithanh89/test-nodejs.git
+#    app_version: master
+#    app_log_file: /var/log/forever.log

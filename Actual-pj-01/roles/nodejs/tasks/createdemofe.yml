@@ -1,0 +1,10 @@
+---
+- name: Create frontend directory
+  file:
+    path: /usr/share/nginx/html/frontend
+    state: directory  
+      
+- name: creating index frontend
+  copy:
+    src: index-frontend.html
+    dest: /usr/share/nginx/html/frontend/index.html      

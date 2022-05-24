@@ -1,0 +1,35 @@
+---
+# tasks file for nodejs
+- name: Create app directory
+  file:
+    path: "{{item.app_home}}"
+    state: directory
+  with_items: "{{forever_app}}"
+
+- name: Create app_log file
+  file:
+    path: "{{item.app_log_file}}"
+    state: touch
+  with_items: "{{forever_app}}"
+
+- name: Clone source
+  git:
+    repo: "{{item.app_repo}}"
+    dest: "{{item.app_home}}"
+    version: "{{item.app_version}}"
+    update: yes
+  with_items: "{{forever_app}}"
+
+- name: Create forever service
+  template:
+    src: forever.service.j2
+    dest: "{{systemd_service_dir}}/forever-{{item.app_name}}.service"
+  with_items: "{{forever_app}}"
+
+- name: Make sure forever service is running
+  systemd:
+    daemon_reload: yes
+    state: restarted
+    name: "forever-{{item.app_name}}"
+    enabled: yes
+  with_items: "{{forever_app}}"

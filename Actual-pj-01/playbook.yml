@@ -1,0 +1,24 @@
+---
+# - hosts: be
+  # become: yes
+  # gather_facts: true
+  # roles:
+    # - nginx
+    # - java
+
+# - hosts: be
+  # become: yes
+  # gather_facts: true
+  # roles:
+    # - nginx
+    # - php
+    # - mysqlsv
+    #- composer
+
+
+- hosts: fe
+  become: yes
+  gather_facts: true
+  roles:
+    - nginx
+    - nodejs

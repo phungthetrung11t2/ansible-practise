@@ -1,0 +1,105 @@
+### Simple nginx config block
+server {
+    listen         80;
+    listen         [::]:80;
+    server_name    {{item.server_name}} www.{{item.server_name}};
+    root           {{item.root_path}}/{{item.server_name}};
+    index          index index.php index.html;
+#   return 301 https://$host$request_uri;
+
+    if ($request_method !~ ^(GET|POST)$ )
+    {
+    return 405;
+    }
+
+    access_log {{item.log_path}}/{{item.server_name}}.access.log;
+    error_log {{item.log_path}}/{{item.server_name}}.error.log;
+### End simple nginx config block
+
+### HTTPS config block
+#server {
+#  	listen 443 ssl;
+#   listen [::]:443 ssl;
+#  	server_name {{item.server_name}} www.{{item.server_name}};
+  	# SSL
+#  	ssl_certificate /etc/letsencrypt/live/{{item.server_name}}/fullchain.pem;
+#  	ssl_certificate_key /etc/letsencrypt/live/{{item.server_name}}/privkey.pem;
+#  	ssl_trusted_certificate /etc/letsencrypt/live/{{item.server_name}}/chain.pem;
+#   }
+### Include global SSL settings
+#	include /etc/nginx/ssl.conf;
+### End HTTPS config block
+
+# Secure Cookie Flag
+proxy_cookie_path / "/; Secure";
+
+# Security Headers
+add_header X-Frame-Options "SAMEORIGIN";
+add_header X-XSS-Protection "1; mode=block";
+add_header X-Content-Type-Options "nosniff" always;
+
+# Enable HSTS including subdomains
+add_header Strict-Transport-Security max-age=31536000;
+
+### Proxy pass config block
+#  location / {
+#    proxy_pass      http://127.0.0.1:8080;
+#    proxy_set_header Host $host;
+#    proxy_set_header X-Real-IP $remote_addr;
+#    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#    }
+### End proxy pass config block
+
+### Load balancing config block
+#upstream backend {
+#    server 127.0.0.3:8000 weight=5;
+#    server 127.0.0.3:8001 weight=5;
+#    server 192.168.0.1:8000;
+#    server 192.168.0.1:8001;
+#  }
+#  server { # simple load balancing
+#    listen          80;
+#    server_name     abc-xyz.com;
+#    access_log      logs/abc_xyz.access.log main;
+#    location / {
+#      proxy_pass      http://backend;
+#    }
+### End load balancing config block
+
+  location ^~ /.well-known/acme-challenge/ {
+    root  {{item.root_path}}/{{item.server_name}};
+    allow all;
+    }
+
+  location = /.well-known/acme-challenge/ {
+    return 404;
+    }
+
+  location / {
+          try_files $uri $uri/ /index.php?q=$uri&$args;
+    }
+
+  location ~* \.php$ {
+    fastcgi_pass 127.0.0.1:9000;
+    include         fastcgi_params;
+    fastcgi_index index.php;
+    fastcgi_connect_timeout 1000;
+		fastcgi_send_timeout 1000;
+		fastcgi_read_timeout 1000;
+		fastcgi_buffer_size 256k;
+		fastcgi_buffers 4 256k;
+		fastcgi_busy_buffers_size 256k;
+		fastcgi_temp_file_write_size 256k;
+		fastcgi_intercept_errors on;
+    fastcgi_param   SCRIPT_FILENAME    $document_root$fastcgi_script_name;
+    fastcgi_param   SCRIPT_NAME        $fastcgi_script_name;
+    }
+
+  location ~*  \.(jpg|jpeg|png|gif|ico|css|js)$ {
+    expires 30d;
+    }
+
+  location ~ /\. {
+		deny all;
+	  }
+}

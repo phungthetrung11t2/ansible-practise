@@ -1,0 +1,16 @@
+- name: Install the MySQL repo.
+  yum:
+   name:  https://dev.mysql.com/get/mysql{{ mysql_rh_version }}-community-release-el7-11.noarch.rpm
+   state: present
+  register: mysqlrepo
+
+- name: Addkey mysql
+  command: rpm --import https://repo.mysql.com/RPM-GPG-KEY-mysql-2022
+
+- name: Ensure MySQL packages are installed.
+  yum: "name={{ __mysql_packages__ami }} state=present"
+  when: mysqlrepo is changed
+  register: rh_mysql_install_packages
+
+- name: Ensure MySQL Python libraries are installed.
+  yum: "name=MySQL-python state=present "

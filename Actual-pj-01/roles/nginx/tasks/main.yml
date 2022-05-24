@@ -1,0 +1,116 @@
+---
+# Variable setup.
+- name: Include OS-specific variables.
+  include_vars: RedHat.yml
+
+- name: Define nginx_user.
+  set_fact:
+    nginx_user: "{{ nginx_user }}"
+  when: nginx_user is not defined
+
+# Setup/install tasks.
+- include_tasks: setup-RedHat.yml
+  when: ansible_os_family == 'RedHat'
+
+# Nginx setup.
+- name: Create Diffie–Hellman params directory
+  file:
+    path: "/etc/nginx/ssl"
+    state: directory
+
+- name: Check Diffie–Hellman params file exists
+  stat:
+    path: "/etc/nginx/ssl/dhparam.pem"
+  register: dh_params
+
+- name: Create Diffie–Hellman params file
+  command: openssl dhparam 2048 -out /etc/nginx/ssl/dhparam.pem
+  when: not dh_params.stat.exists
+ 
+- name: Copy nginx configuration in place.
+  template:
+    src: "{{ nginx_conf_template }}"
+    dest: "{{ nginx_conf_file_path }}"
+    owner: root
+    group: "{{ root_group }}"
+    mode: 0644
+  notify:
+    - reload nginx
+
+- name: Copy nginx proxy configuration in place.
+  template:
+    src: "{{ nginx_proxy_template }}"
+    dest: "{{ nginx_proxy_cache_path }}"
+    owner: root
+    group: "{{ root_group }}"
+    mode: 0644
+  notify:
+    - reload nginx
+
+- name: Copy nginx ssl configuration in place.
+  template:
+    src: "{{ nginx_ssl_template }}"
+    dest: "{{ nginx_ssl_path }}"
+    owner: root
+    group: "{{ root_group }}"
+    mode: 0644
+  notify:
+    - reload nginx
+
+- name: Copy nginx_status configuration in place to monitor.
+  template:
+    src: nginx_status.conf.j2
+    dest: "{{ nginx_vhost_path }}/{{ nginx_status_config}}"
+    owner: root
+    group: "{{ root_group }}"
+    mode: 0644
+  notify:
+    - reload nginx
+
+- name: Ensure nginx is started and enabled to start at boot.
+  service: name=nginx state=started enabled=yes
+
+- include_tasks: vhost.yml
+  when: nginx_vhosts is defined
+
+- import_tasks: nginx-exporter.yml
+  when: nginx_exporter
+  tags: nginx-exporter
+
+- name: Ensure git is started
+  yum:
+    name: git
+    state: latest
+
+#Copy default.config frontend nodejs
+- name: Copy default.config frontend nodejs
+  template:
+    src: default.conf.fe.j2
+    dest: "{{ nginx_vhost_path }}/{{ nginx_default_config}}"
+    owner: root
+    group: "{{ root_group }}"
+    mode: 0644
+  notify:
+    - reload nginx
+
+#Copy default.config backend java
+# - name: Copy default.config backend java
+  #template:
+    # src: default.conf.be.java.j2
+    # dest: "{{ nginx_vhost_path }}/{{ nginx_default_config}}"
+    # owner: root
+    # group: "{{ root_group }}"
+    # mode: 0644
+  #notify:
+    # - reload nginx
+
+#Copy default.config backend php
+# - name: Copy default.config backend php
+  # template:
+    # src: default.conf.be.php.j2
+    # dest: "{{ nginx_vhost_path }}/{{ nginx_default_config}}"
+    # owner: root
+    # group: "{{ root_group }}"
+    # mode: 0644
+  # notify:
+    # - reload nginx

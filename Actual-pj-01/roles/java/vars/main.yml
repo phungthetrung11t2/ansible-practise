@@ -1,0 +1,5 @@
+---
+# vars file for java
+__java_packages:
+  - java-11-openjdk
+__java_home: /usr/lib/jvm/jre

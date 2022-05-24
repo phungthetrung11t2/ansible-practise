@@ -1,0 +1,22 @@
+---
+- name: download composer
+  command: "sudo curl -sS https://getcomposer.org/installer | sudo php"
+
+- name: move composer to bin
+  command: "sudo mv composer.phar /usr/local/bin/composer"
+
+- name: apply composer to bin
+  command: "sudo ln -s /usr/local/bin/composer /usr/bin/composer"
+
+# Create Nagios User and Group 
+# - name: Add group "dev"
+  # group: name=dev
+  # become: true
+# 
+# - name: Add user "dev"  
+  # user: name=dev groups=dev password="" shell=/bin/bash append=yes state=present
+  # become: true
+# 
+# - name: create folder dev
+
+
