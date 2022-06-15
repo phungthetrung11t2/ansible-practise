@@ -1,0 +1,31 @@
+---
+# tasks file for redis
+- name: create sentinel working directory
+  file:
+    path: "{{ redis_sentinel_dir }}"
+    state: directory
+    recurse: yes
+    owner: "{{ redis_user }}"
+
+- name: create sentinel config file
+  template:
+    src: redis-sentinel.conf.j2
+    dest: "{{redis_conf_dir}}/redis-sentinel.conf"
+    owner: "{{ redis_user }}"
+    mode: 0644
+
+- name: create sentinel systemd service
+  template:
+    src: redis-sentinel.service.j2
+    dest: "{{redis_service_dir}}/redis-sentinel.service"
+    mode: 0644
+  register: sentinel_unit_file
+  when: ansible_os_family == 'Debian'
+  notify: restart redis-sentinel
+
+- name: Make sure Redis-sentinel service is running
+  systemd:
+    daemon_reload: yes
+    state: restarted
+    name: redis-sentinel
+    enabled: yes

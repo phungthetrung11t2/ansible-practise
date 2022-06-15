@@ -1,24 +1,26 @@
 ---
-# - hosts: be
-  # become: yes
-  # gather_facts: true
-  # roles:
-    # - nginx
-    # - java
-
-# - hosts: be
-  # become: yes
-  # gather_facts: true
-  # roles:
-    # - nginx
-    # - php
-    # - mysqlsv
-    #- composer
-
-
-- hosts: fe
+- hosts: dev
   become: yes
   gather_facts: true
   roles:
-    - nginx
-    - nodejs
+    #- nginx
+    #- java
+    - redis
+
+# - hosts: dev
+#   become: yes
+#   gather_facts: true
+#   roles:
+    # - nginx
+    # - php
+    #- mysqlsv
+    #- composer
+    #- nodejs
+
+
+# - hosts: fe
+#   become: yes
+#   gather_facts: true
+#   roles:
+#     - nginx
+#     - nodejs

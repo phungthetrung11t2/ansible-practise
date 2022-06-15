@@ -83,15 +83,15 @@
     state: latest
 
 #Copy default.config frontend nodejs
-- name: Copy default.config frontend nodejs
-  template:
-    src: default.conf.fe.j2
-    dest: "{{ nginx_vhost_path }}/{{ nginx_default_config}}"
-    owner: root
-    group: "{{ root_group }}"
-    mode: 0644
-  notify:
-    - reload nginx
+# - name: Copy default.config frontend nodejs
+#   template:
+#     src: default.conf.fe.j2
+#     dest: "{{ nginx_vhost_path }}/{{ nginx_default_config}}"
+#     owner: root
+#     group: "{{ root_group }}"
+#     mode: 0644
+#   notify:
+#     - reload nginx
 
 #Copy default.config backend java
 # - name: Copy default.config backend java
@@ -105,12 +105,12 @@
     # - reload nginx
 
 #Copy default.config backend php
-# - name: Copy default.config backend php
-  # template:
-    # src: default.conf.be.php.j2
-    # dest: "{{ nginx_vhost_path }}/{{ nginx_default_config}}"
-    # owner: root
-    # group: "{{ root_group }}"
-    # mode: 0644
-  # notify:
-    # - reload nginx
+- name: Copy default.config backend php
+  template:
+    src: default.conf.be.php.j2
+    dest: "{{ nginx_vhost_path }}/{{ nginx_default_config}}"
+    owner: root
+    group: "{{ root_group }}"
+    mode: 0644
+  notify:
+    - reload nginx

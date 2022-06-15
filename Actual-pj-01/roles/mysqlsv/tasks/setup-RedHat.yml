@@ -1,8 +1,16 @@
-- name: Install the MySQL repo.
+- name: Install the MySQL repo 5.7
   yum:
    name:  https://dev.mysql.com/get/mysql{{ mysql_rh_version }}-community-release-el7-11.noarch.rpm
    state: present
   register: mysqlrepo
+  when: mysql_rh_version == "57"
+
+- name: Install the MySQL repo 8.0
+  yum:
+   name:  https://dev.mysql.com/get/mysql{{ mysql_rh_version }}-community-release-el7-5.noarch.rpm
+   state: present
+  register: 
+  when: mysql_rh_version == "80"
 
 - name: Addkey mysql
   command: rpm --import https://repo.mysql.com/RPM-GPG-KEY-mysql-2022

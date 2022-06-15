@@ -1,0 +1,26 @@
+---
+# tasks file for redis
+- name: Install epel-release repository Centos
+  yum:
+    name: epel-release
+  when: ansible_distribution == "CentOS"
+
+- name: Install epel-release repository AMI
+  command: "sudo yum-config-manager --enable epel"
+  when:  ansible_distribution == "Amazon"
+
+- name: Ensure Redis is installed on CentOs
+  package:
+    name: "{{ redis_package }}"
+    state: present
+    enablerepo: "{{ redis_enablerepo | default(omit, true) }}"
+  when: ansible_distribution == "CentOS"
+
+# - name: Ensure Redis is installed on AMI
+#   yum:
+#     name: "{{ redis_package }}"
+#     state: present
+#   when:  ansible_distribution == "Amazon"
+
+- name: Ensure Redis is installed on AMI laster v6
+  command: "sudo amazon-linux-extras install redis6 -y"

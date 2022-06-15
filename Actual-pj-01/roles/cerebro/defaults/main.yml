@@ -1,0 +1,8 @@
+---
+# defaults file for cerebro
+# Define directory execute
+cerebro_dest: /home
+cerebro_dir: "{{cerebro_dest}}/cerebro-{{cerebro_latest_version}}"
+cerebro_execute_dir: "{{cerebro_dir}}/bin"
+# Define port to run
+cerebro_port: 1234

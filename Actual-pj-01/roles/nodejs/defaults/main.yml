@@ -6,8 +6,8 @@ npm_config_unsafe_perm: "false"
 nodejs_npm_global_packages:
   - name: yarn
     version: 1.22.18
-  - name: pm2
-    version: 5.2.0
+  # - name: pm2
+  #   version: 5.2.0
   - name: swagger-stats
   - name: forever
 

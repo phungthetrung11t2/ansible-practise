@@ -27,7 +27,8 @@
 
 - name: Add Nodesource repositories for Node.js (CentOS < 7).
   yum:
-    name: "http://rpm.nodesource.com/{{ nodejs_rhel_rpm_dir }}/el/7/{{ ansible_architecture }}/nodesource-release-el7-1.noarch.rpm"
+    #name: "http://rpm.nodesource.com/{{ nodejs_rhel_rpm_dir }}/el/7/{{ ansible_architecture }}/nodesource-release-el7-1.noarch.rpm"
+    name: "http://rpm.nodesource.com/{{ nodejs_rhel_rpm_dir }}/el/8/{{ ansible_architecture }}/nodejs-14.17.6-1nodesource.aarch64.rpm"
     state: present
   when: ansible_distribution_major_version|int < 7
 

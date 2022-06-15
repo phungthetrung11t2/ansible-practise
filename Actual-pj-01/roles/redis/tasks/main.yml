@@ -1,0 +1,83 @@
+---
+# tasks file for redis
+- name: Check hosts group before run config cluster playbook
+  fail:
+    msg: "Please define hostgroup 'redis' in ansible hosts file before run playbook"
+  when:
+    - "'redis' not in groups"
+    - redis_sentinel|bool
+
+- name: Include OS-specific variables.
+  include_vars: "{{ ansible_os_family }}.yml"
+
+# Setup/install tasks.
+- include_tasks: setup-RedHat.yml
+  when: ansible_os_family == 'RedHat'
+
+- include_tasks: setup-Debian.yml
+  when: ansible_os_family == 'Debian'
+
+- name: Ensure Redis is configured.
+  template:
+    src: redis.conf.j2
+    dest: "{{redis_conf_dir}}/redis.conf"
+    owner: "{{redis_user}}"
+    group: "{{redis_group}}"
+    mode: 0644
+  notify: restart redis
+
+- name: Config Redis run as service by systemd
+  template:
+    src: redis.service.j2
+    dest: "{{redis_service_dir}}/redis.service"
+    owner: "{{redis_user}}"
+    group: "{{redis_group}}"
+    mode: 0644
+  when: ansible_os_family == 'Debian'
+
+- name: Disable transparent_hugepage until reboot
+  shell: echo never > /sys/kernel/mm/transparent_hugepage/enabled && echo never > /sys/kernel/mm/transparent_hugepage/defrag
+  ignore_errors: true
+  changed_when: false
+
+- name: Update net.core.somaxconn
+  sysctl:
+    name: net.core.somaxconn
+    value: 65535
+    state: present
+  retries: 3
+  delay: 3
+  register: result
+  until: result is success
+
+- name: Update vm.overcommit_memory
+  sysctl:
+    name: vm.overcommit_memory
+    value: 1
+    state: present
+    reload: yes
+
+- name: Remove replicaof line in redis master config
+  lineinfile:
+    path: "{{redis_conf_dir}}/redis.conf"
+    regexp: "^replicaof"
+    state: absent
+  when:
+    - "'redis' in groups"
+    - inventory_hostname == groups["redis"][0]
+    - redis_sentinel|bool
+
+- name: Make sure Redis service is running
+  systemd:
+    daemon_reload: yes
+    state: restarted
+    name: "{{redis_daemon}}"
+    enabled: yes
+
+# Setup redis sentinel
+- include_tasks: sentinel.yml
+  when: redis_sentinel
+# Setup monitoring
+- import_tasks: redis_exporter.yml
+  when: redis_exporter and inventory_hostname == groups["redis"][0]
+  tags: redis-exporter

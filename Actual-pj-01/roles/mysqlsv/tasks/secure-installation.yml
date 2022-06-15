@@ -1,7 +1,7 @@
 
 - name: Find temporary password
-  shell: "echo `grep 'temporary.*root@localhost' /var/log/mysqld.log | sed
-'s/.*root@localhost: //'`"
+  shell: "echo `grep 'temporary.*root@localhost' /var/log/mysqld.log`"
+#| sed's/.*root@localhost: //'`"
   when: ansible_os_family == "RedHat" and rh_mysql_install_packages is changed
   register: mysql_root_password_temp
   tags: register
@@ -32,7 +32,7 @@
     owner: root
     group: root
     mode: 0600
-#  when: mysql_install_packages | bool or mysql_root_password_update
+  when: mysql_install_packages | bool or mysql_root_password_update
   notify: restart mysql
 
 # Has to be after the password assignment, for idempotency.
@@ -47,7 +47,7 @@
   register: mysql_root_hosts
   changed_when: false
   check_mode: no
-  when: mysql_install_packages | bool or mysql_root_password_update
+  #when: mysql_install_packages | bool or mysql_root_password_update
 
 # Note: We do not use mysql_user for this operation, as it doesn't always update
 # the root password correctly. See: https://goo.gl/MSOejW
